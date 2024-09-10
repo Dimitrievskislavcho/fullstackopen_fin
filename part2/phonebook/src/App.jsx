@@ -55,10 +55,15 @@ const App = () => {
       return;
     }
 
-    personsService.createPerson({ name: newName, number }).then(({ data }) => {
-      setPersons([...persons, data]);
-      showNotification({ type: "success", message: `Added ${data.name}` });
-    });
+    personsService
+      .createPerson({ name: newName, number })
+      .then(({ data }) => {
+        setPersons([...persons, data]);
+        showNotification({ type: "success", message: `Added ${data.name}` });
+      })
+      .catch((error) =>
+        console.log({ errorMessage: error.response.data.error })
+      );
 
     setNewName("");
     setNumber("");
