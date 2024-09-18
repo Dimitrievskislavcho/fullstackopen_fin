@@ -75,7 +75,7 @@ describe('blogs api:', () => {
       await api.post('/api/blogs').auth(token, { type: 'bearer' }).send(blog)
       const [, newBlog] = await getAllBlogs()
 
-      assert.strictEqual(newBlog.likes, 1)
+      assert.strictEqual(newBlog.likes, 0)
     })
 
     test("a 400 status code is returned when either 'title' or 'url' is missing from the request", async () => {
@@ -146,10 +146,7 @@ describe('blogs api:', () => {
     }
     const [{ id, likes }] = await getAllBlogs()
 
-    await api
-      .patch(`/api/blogs/${id}`)
-      .auth(token, { type: 'bearer' })
-      .send(blogPatch)
+    await api.patch(`/api/blogs/${id}`).send(blogPatch)
 
     const [{ likes: patchedLikes }] = await getAllBlogs()
 

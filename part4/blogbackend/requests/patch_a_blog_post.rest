@@ -1,0 +1,7 @@
+PATCH http://localhost:3001/api/blogs/66e833cf44f69e7228863d04
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRvZWpvZSIsImlkIjoiNjZlODBjMDM1MzM3ODlhNDM1M2NhZWY2IiwiaWF0IjoxNzI2NDk4NjE1fQ.RpBts9M_ckw-y84188vnkG1yRF_4GXqkIXf2RPIrvqY
+
+{
+  "likes": 100
+}

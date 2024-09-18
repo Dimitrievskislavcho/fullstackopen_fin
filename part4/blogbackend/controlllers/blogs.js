@@ -1,6 +1,6 @@
 const Blog = require('../models/blog')
 const User = require('../models/user')
-const { extractUser } = require('../utils/middleware')
+const { extractUser, extractToken } = require('../utils/middleware')
 
 const blogsRouterMiddlewear = require('express').Router()
 
@@ -27,10 +27,15 @@ blogsRouterMiddlewear.post('/', extractUser, async (request, response) => {
 
   const blog = new Blog({
     ...request.body,
-    likes: typeof request.body.likes === 'undefined' ? 1 : request.body.likes,
+    likes: typeof request.body.likes === 'undefined' ? 0 : request.body.likes,
     user: userId,
   })
   const newBlog = await blog.save()
+  await newBlog.populate('user', {
+    username: 1,
+    name: 1,
+    id: 1,
+  })
 
   user.blogs = user.blogs.concat(blog)
   await user.save()
@@ -53,8 +58,8 @@ blogsRouterMiddlewear.delete('/:id', extractUser, async (request, response) => {
   }
 })
 
-blogsRouterMiddlewear.patch('/:id', extractUser, async (request, response) => {
-  const { id: userId } = request.user || {}
+blogsRouterMiddlewear.patch('/:id', extractToken, async (request, response) => {
+  const token = request.token || {}
   const body = request.body
 
   const patchedBlog = {
@@ -64,8 +69,8 @@ blogsRouterMiddlewear.patch('/:id', extractUser, async (request, response) => {
   const id = request.params.id
   const blog = await Blog.findById(id)
 
-  if (blog.user.toString() === userId) {
-    await blog.updateOne(patchedBlog, { new: true })
+  if (token) {
+    const updatedBlog = await blog.updateOne(patchedBlog, { new: true })
 
     response.json(updatedBlog)
   } else {
