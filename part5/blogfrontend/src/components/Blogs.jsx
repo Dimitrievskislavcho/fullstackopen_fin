@@ -1,55 +1,58 @@
-import { forwardRef } from 'react'
+import { forwardRef, useContext, useEffect } from 'react'
 import { getUserFromStorage } from '../services/login'
-import Blog from './Blog'
-import BlogForm from './BlogForm'
-import Togglable from './Toggleable'
 import PropTypes from 'prop-types'
+import AppContext from '../AppContext'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Container, Nav, Navbar } from 'react-bootstrap'
 
-const Blogs = forwardRef(
-  (
-    { data, children, logoutButton, onCreateBlog, onBlogLike, onBlogDelete },
-    ref
-  ) => {
-    const { name: loggedUserName } = getUserFromStorage() || {}
+const Blogs = ({ children, logoutButton }) => {
+  const { name: loggedUserName } = getUserFromStorage() || {}
+  const {
+    state: { user },
+  } = useContext(AppContext)
+  const navigate = useNavigate()
 
-    return (
-      <div>
-        <h2>blogs</h2>
-        <p>
-          {loggedUserName} logged in {logoutButton}
-        </p>
+  useEffect(() => {
+    !user && navigate('/login')
+  }, [navigate, user])
 
-        {children}
+  if (!user) return null
 
-        <Togglable ref={ref} buttonLabel='new blog'>
-          <BlogForm onCreateBlog={onCreateBlog}></BlogForm>
-        </Togglable>
+  return (
+    <div>
+      <Navbar expand='md' className='bg-body-tertiary' data-bs-theme='dark'>
+        <Container>
+          <Navbar.Toggle aria-controls='basic-navbar-nav' />
+          <Navbar.Collapse id='basic-navbar-nav'>
+            <Nav>
+              <Nav.Link href='/'>blogs</Nav.Link>
+              <Nav.Link href='/users'>users</Nav.Link>
+            </Nav>
+          </Navbar.Collapse>
+          <Navbar.Collapse className='justify-content-end'>
+            <Navbar.Text>{loggedUserName} logged in </Navbar.Text>
+            <Navbar.Text>{logoutButton}</Navbar.Text>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
 
-        {data.map((blog) => (
-          <Blog
-            onBlogLike={onBlogLike}
-            onBlogDelete={onBlogDelete}
-            key={blog.id}
-            blog={blog}
-          />
-        ))}
-      </div>
-    )
-  }
-)
+      <h2>blog app</h2>
+      <p></p>
+
+      {children}
+      <Outlet />
+    </div>
+  )
+}
 
 Blogs.displayName = 'Blogs'
 
 Blogs.propTypes = {
-  data: PropTypes.array.isRequired,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node,
   ]).isRequired,
   logoutButton: PropTypes.node.isRequired,
-  onCreateBlog: PropTypes.func.isRequired,
-  onBlogLike: PropTypes.func.isRequired,
-  onBlogDelete: PropTypes.func.isRequired,
 }
 
 export default Blogs

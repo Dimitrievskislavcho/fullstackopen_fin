@@ -22,19 +22,25 @@ const likeBlog = ({ id, likes }) => {
   const request = axios.patch(
     `${baseUrl}/${id}`,
     {
-      likes: likes + 1,
+      likes,
     },
     config
   )
   return request.then((response) => response.data)
 }
 
-const deleteBlog = (id) => {
+const addBlogComment = ({ id, comment }) => {
   const config = {
     headers: { Authorization: getAuthorizationHeader() },
   }
-  const request = axios.delete(`${baseUrl}/${id}`, config)
+  const request = axios.post(
+    `${baseUrl}/${id}/comments`,
+    {
+      comment,
+    },
+    config
+  )
   return request.then((response) => response.data)
 }
 
-export { getAll, createBlog, likeBlog, deleteBlog }
+export { getAll, createBlog, likeBlog, addBlogComment }

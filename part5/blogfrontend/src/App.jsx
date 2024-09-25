@@ -1,17 +1,33 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useContext, useCallback, forwardRef } from 'react'
 import LoginForm from './components/LoginForm'
-import { getUserFromStorage, login, logout } from './services/login'
+import { login, logout } from './services/login'
 import Blogs from './components/Blogs'
-import { createBlog, deleteBlog, getAll, likeBlog } from './services/blogs'
+import { getAll as getAllUsers } from './services/users'
+import { getAll } from './services/blogs'
 import Notification from './components/Notification'
+import AppContext from './AppContext'
+import { useQuery } from '@tanstack/react-query'
+import { Route, Routes } from 'react-router-dom'
+import BlogList from './components/BlogList'
+import Users from './components/Users'
+import UserDetails from './components/UserDetails'
+import BlogDetails from './components/BlogDetails'
+import { Button } from 'react-bootstrap'
 
 const App = () => {
-  const [blogs, setBlogs] = useState([])
   // user being set as an empty object fixes the flashing problem on refresh aka
   // neithger Blogs or LoginForm should be shown
-  const [user, setUser] = useState({})
-  const [notification, setNotification] = useState(null)
+  const {
+    state: { notification },
+    dispatch,
+  } = useContext(AppContext)
   const togglableSection = useRef()
+  const setNotification = useCallback(
+    (notification = '') => {
+      dispatch({ type: 'SET_NOTIFICATION', payload: notification })
+    },
+    [dispatch]
+  )
 
   const handleLogin = async ({ username, password }) => {
     try {
@@ -19,7 +35,7 @@ const App = () => {
         username,
         password,
       })
-      setUser(user)
+      dispatch({ type: 'SET_USER', payload: user })
       setNotification(null)
     } catch (exception) {
       setNotification({ message: 'Wrong credentials', type: 'error' })
@@ -30,97 +46,87 @@ const App = () => {
     return true
   }
 
-  const handleBlogCreation = async (blogData) => {
-    try {
-      const blog = await createBlog(blogData)
-      setBlogs([...blogs, blog])
-      setNotification({
-        message: `a new blog ${blog.title}! by ${
-          blog.author ? blog.author : 'Unknown authhor'
-        } added`,
-        type: 'success',
-      })
-      togglableSection.current.toggleVisibility()
-      return blog
-    } catch (error) {
-      setNotification({ message: error.message, type: 'error' })
-    }
-  }
-
-  const handleBlogLike = async (blogData) => {
-    try {
-      const response = await likeBlog(blogData)
-
-      if (response.acknowledged) {
-        setBlogs(
-          blogs.map((blog) =>
-            blog.id === blogData.id ? { ...blog, likes: blog.likes + 1 } : blog
-          )
-        )
-      }
-
-      return true
-    } catch (error) {
-      setNotification({ message: error.message, type: 'error' })
-    }
-  }
-
   const handleLogout = () => {
     logout()
-    setUser(null)
+    dispatch({ type: 'SET_USER', payload: null })
     setNotification(null)
   }
 
-  const handleBlogDeletion = async (blogId) => {
-    try {
-      await deleteBlog(blogId)
-      setBlogs(blogs.filter((blog) => blog.id !== blogId))
-    } catch (error) {
-      setNotification({ message: error.message, type: 'error' })
-    }
-  }
+  const { data: users } = useQuery({
+    initialData: [],
+    queryKey: ['users'],
+    queryFn: getAllUsers,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+
+  const { data } = useQuery({
+    initialData: [],
+    queryFn: getAll,
+    queryKey: ['blogs'],
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const blogs = data.sort((first, second) => {
+    return second.likes - first.likes
+  })
 
   useEffect(() => {
-    getAll().then((blogs) => {
-      setBlogs(
-        blogs.sort((first, second) => {
-          return second.likes - first.likes
-        })
-      )
-    })
-  }, [])
+    let timeoutId
 
-  useEffect(() => {
-    setUser(getUserFromStorage())
-  }, [])
-
-  useEffect(() => {
     if (notification) {
-      setTimeout(() => setNotification(null), 5000)
+      timeoutId = setTimeout(() => setNotification(null), 5000)
     }
-  }, [notification])
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [notification, setNotification])
 
   const projectNotification = () =>
     notification ? <Notification data={notification} /> : ''
 
   return (
-    <>
-      {user && user.token && (
-        <Blogs
-          ref={togglableSection}
-          data={blogs}
-          logoutButton={<button onClick={handleLogout}>logout</button>}
-          onBlogLike={handleBlogLike}
-          onBlogDelete={handleBlogDeletion}
-          onCreateBlog={handleBlogCreation}
+    <div className='container'>
+      <Routes>
+        <Route
+          path='/'
+          element={
+            <Blogs
+              logoutButton={
+                <Button onClick={handleLogout} variant='secondary'>
+                  logout
+                </Button>
+              }
+            >
+              {projectNotification()}
+            </Blogs>
+          }
         >
-          {projectNotification()}
-        </Blogs>
-      )}
-      {!user && (
-        <LoginForm handleLogin={handleLogin}>{projectNotification()}</LoginForm>
-      )}
-    </>
+          <Route
+            index
+            element={<BlogList data={blogs} ref={togglableSection}></BlogList>}
+          ></Route>
+          <Route
+            path='blogs/:id'
+            element={<BlogDetails blogs={blogs}></BlogDetails>}
+          />
+          <Route path='users' element={<Users users={users} />}></Route>
+          <Route
+            path='users/:id'
+            element={<UserDetails users={users} />}
+          ></Route>
+        </Route>
+        <Route
+          path='/login'
+          element={
+            <LoginForm handleLogin={handleLogin}>
+              {projectNotification()}
+            </LoginForm>
+          }
+        />
+      </Routes>
+    </div>
   )
 }
 

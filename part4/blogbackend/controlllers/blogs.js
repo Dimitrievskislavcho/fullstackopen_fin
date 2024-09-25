@@ -78,4 +78,27 @@ blogsRouterMiddlewear.patch('/:id', extractToken, async (request, response) => {
   }
 })
 
+blogsRouterMiddlewear.post(
+  '/:id/comments',
+  extractToken,
+  async (request, response) => {
+    const token = request.token || {}
+    const body = request.body
+
+    const id = request.params.id
+    const blog = await Blog.findById(id)
+
+    if (token) {
+      const updatedBlog = await blog.updateOne(
+        { comments: [...blog.comments, body.comment] },
+        { new: true }
+      )
+
+      response.json(updatedBlog)
+    } else {
+      response.status(401).json({ error: 'Auth token not provided or invalid' })
+    }
+  }
+)
+
 module.exports = blogsRouterMiddlewear
