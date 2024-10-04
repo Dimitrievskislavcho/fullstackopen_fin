@@ -1,0 +1,13 @@
+POST http://localhost:3000/api/patients/d27736ec-f723-11e9-8f0b-362b9e155667/entries
+Content-Type: application/json
+
+{
+	"type": "Hospital",
+	"description": "Test description 2",
+	"date": "2024-04-03",
+	"specialist": "Test specialist 1",
+	"discharge": {
+		"date": "2024-04-03",
+		"criteria": "healed"
+	}
+}
